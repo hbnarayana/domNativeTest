@@ -10,12 +10,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@hb-nasiruddin/dom-library": "^0.2.5",
+    "@hb-nasiruddin/dom-library": "^0.2.9",
     "@react-native-async-storage/async-storage": "^1.17.7",
     "axios": "^0.27.2",
     "react": "17.0.2",
     "react-native": "0.68.2",
-    "react-native-inappbrowser-reborn": "^3.6.3"
+    "react-native-inappbrowser-reborn": "^3.6.3",
+    "react-native-webview": "^11.22.7"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",

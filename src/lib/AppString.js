@@ -1,4 +1,4 @@
-export default {
+export const AppString = {
     loginButtonTitle : 'Login',
     logoutButtonTitle : 'log Out',
     userLogin : 'User Login',
