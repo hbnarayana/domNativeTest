@@ -33,7 +33,7 @@ import Hud from './component/Hud';
 const App = () => {
 
 
-  const { isUserLoggedIn, onServerLogin, setUserLogin, verifyLogin } = useContext(AuthContext);
+  const { isUserLoggedIn, onServerLogin, setUserLogin, verifyLogin, onLogout } = useContext(AuthContext);
   const [isUserLoginState, setUserLoginState] = useState(false)
   const [showHud, setShowHud] = useState(false)
   const [getUrl, setgetUrl] = useState('')
@@ -43,92 +43,9 @@ const App = () => {
 
 
   useEffect(() => {
-
+    checkedUserLogin()
   }, [])
 
-  // const callFetchCall = async () => {
-  //   // axios({
-  //   //   method: 'POST',
-  //   //   url: `http://www.7timer.info/bin/api.pl?lon=113.17&lat=23.09&product=astro&output=json`,
-  //   // }).then((response) => {
-  //   //   console.log("data=============", response);
-  //   // }).catch(err2 => {
-  //   //   console.log("Err22=============", JSON.stringify(err2));
-  //   // })
-
-  //   const url = 'https://hubert.d.dom.de/auth/realms/Kaufland/protocol/openid-connect/auth?code_verifier=j9h7L1q703Vd7rJyqDH8rd4X8SufsXw5KKMpqFcrtqroiuy5HiXSsuzL19m9wzYd&response_type=code&client_id=kaufland&scope=openid+all+csc+prepaidActivation&code_challenge_method=S256&code_challenge=S7-6m06X5lx5c97fYAZxNmI4PRWWFJrjNWwzGrpOqPw&redirect_uri=pkce-smpl://callback'
-  //   if (await InAppBrowser.isAvailable()) {
-  //     InAppBrowser.openAuth(url, '', {
-  //       // iOS Properties
-  //       ephemeralWebSession: true,
-  //       // Android Properties
-  //       showTitle: false,
-  //       enableUrlBarHiding: true,
-  //       enableDefaultShare: false
-  //     }).then((response) => {
-  //       console.log('response-<', JSON.stringify(response))
-  //       if (
-  //         response.type === 'success' &&
-  //         response.url
-  //       ) {
-  //         Linking.openURL(response.url)
-  //       }
-  //     }).catch((error12) => {
-  //       InAppBrowser.closeAuth()
-  //       callFetchCall()
-  //       console.log('error123-<', JSON.stringify(error12))
-  //     })
-
-  //   }
-  //   else Linking.openURL(url)
-
-  //   // parses JSON response into native JavaScript objects
-  // }
-
-  // const callOpenURL = async () => {
-  //   try {
-  //     const url = 'https://www.proyecto26.com'
-  //     if (await InAppBrowser.isAvailable()) {
-  //       const result = await InAppBrowser.open(url, {
-  //         // iOS Properties
-  //         dismissButtonStyle: 'cancel',
-  //         preferredBarTintColor: '#453AA4',
-  //         preferredControlTintColor: 'white',
-  //         readerMode: false,
-  //         animated: true,
-  //         modalPresentationStyle: 'fullScreen',
-  //         modalTransitionStyle: 'coverVertical',
-  //         modalEnabled: true,
-  //         enableBarCollapsing: false,
-  //         // Android Properties
-  //         showTitle: true,
-  //         toolbarColor: '#6200EE',
-  //         secondaryToolbarColor: 'black',
-  //         navigationBarColor: 'black',
-  //         navigationBarDividerColor: 'white',
-  //         enableUrlBarHiding: true,
-  //         enableDefaultShare: true,
-  //         forceCloseOnRedirection: false,
-  //         // Specify full animation resource identifier(package:anim/name)
-  //         // or only resource name(in case of animation bundled with app).
-  //         animations: {
-  //           startEnter: 'slide_in_right',
-  //           startExit: 'slide_out_left',
-  //           endEnter: 'slide_in_left',
-  //           endExit: 'slide_out_right'
-  //         },
-  //         headers: {
-  //           'my-custom-header': 'my custom header value'
-  //         }
-  //       })
-  //       console.log('result0000-<', result)
-  //       // Alert.alert(JSON.stringify(result))
-  //     }
-  //     else Linking.openURL(url)
-  //   } catch (error) {
-  //     InAppBrowser.close()
-  //   }
-  // }
 
   // handle login press
   const onloginPress = async () => {
@@ -154,7 +71,9 @@ const App = () => {
 
   // Handle UserGErAccessData
   const getDataUserAccessData = async (url) => {
-    const redirectSchema = Platform.OS === 'ios' ? AppString.REDIRECT_SCHEMA : AppString.REDIRECT_URL;
+    const redirectSchema = Platform.OS === 'android' ? AppString.REDIRECT_SCHEMA : AppString.REDIRECT_URL;
+    
+    console.log('hwiiii===>',url.split('redirect_uri=')[0] + `redirect_uri=${redirectSchema}`) 
     try {
       if (await InAppBrowser.isAvailable()) {
         InAppBrowser.openAuth(url, redirectSchema, {
@@ -170,7 +89,7 @@ const App = () => {
           // getDataUserAccessData(response);
         }).catch((error12) => {
           InAppBrowser.closeAuth()
-          getDataUserAccessData(url)
+          // getDataUserAccessData(url)
           console.log('error123-<', JSON.stringify(error12))
         })
       } else {
@@ -184,52 +103,103 @@ const App = () => {
 
 
   // handle logout press
-  const onLogoutPress = () => {
+  const onLogoutPress = async() => {
+    let authToken = await AsyncStorage.getItem(appStorage.AUTH_TOKEN);
+    let refreshToken =await AsyncStorage.getItem(appStorage.AUTH_REFRESH_TOKEN);
+    onLogout(
+      refreshToken,
+      authToken
+    ).then((value)=>{
+      setgetUrl(value.url)
+      setShowPopUp(true)
+      console.log('value===>',JSON.stringify(value))
+      // getDataUserAccessData(value.url)
+    })
+  }
 
+  // CallToken API
+  const callTokenAPI = async (code) => {
+    setShowHud(true)
+
+    var codeVerifier = await AsyncStorage.getItem(appStorage.AUTH_CODE_VERIFIER)
+    verifyLogin(code, codeVerifier)
+      .then((result) => {
+        console.log('verifyLogin---<', result);
+        if (result && result.access_token) {
+          setUserLogin(true);
+          setShowHud(false)
+          AsyncStorage.setItem(appStorage.AUTH_TOKEN, result.access_token);
+          AsyncStorage.setItem(appStorage.AUTH_REFRESH_TOKEN, result.refresh_token);
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+  }
+
+  //Foir checking user is logged in or not
+  const checkedUserLogin = async () => {
+    await AsyncStorage.getItem(appStorage.AUTH_TOKEN).then((value) => {
+      value ?
+        setUserLogin(true)
+        :
+        setUserLogin(false)
+    })
+  }
+
+  //UI component
+  const LoginPage = () =>{
+   return(
+    <Modal
+    visible={showPopUp}
+    transparent={true}
+  >
+    <View style={styles.webView}>
+      <WebView
+        containerStyle={styles.webView}
+        useWebkit
+        startInLoadingState={true}
+        cacheEnabled={false}
+        onMessage={(data) => {
+          console.log('data-->', data)
+          // setWebviewData(data.nativeEvent.data)
+        }}
+        onNavigationStateChange={async (data) => {
+          console.log('onNavigationStateChange1-->', data.url)
+          if (data.url.indexOf('session_state') > -1) {
+            setShowPopUp(false)
+            let cropedData = data.url.split('session_state=')[1].split('&code=')
+            let sessionState = cropedData[0];
+            let code = cropedData[1]
+            AsyncStorage.setItem(appStorage.AUTH_CODE, code);
+            AsyncStorage.setItem("session_state", sessionState);
+            setUserLoginState(true)
+            callTokenAPI(code, sessionState)
+            console.log('sessionState-->', sessionState, code)
+          }
+        }}
+        source={{
+          uri: getUrl
+        }}
+      />
+    </View>
+  </Modal>
+   ) 
   }
 
   return (
 
     <SafeAreaView style={styles.mainContainer}>
-      <Text style={styles.headerText}>{AppString.userLogin} : {isUserLoginState.toString()}</Text>
+      <Text style={styles.headerText}>{AppString.userLogin} : {isUserLoggedIn.toString()}</Text>
       {
-        !isUserLoginState && <Button title={AppString.loginButtonTitle} disabled={isUserLoginState} onPress={onloginPress} />
+        !isUserLoggedIn && <Button title={AppString.loginButtonTitle} disabled={isUserLoggedIn} onPress={onloginPress} />
       }
       {
-        isUserLoginState && <Button title={AppString.logoutButtonTitle} disabled={isUserLoginState} onPress={onLogoutPress} />
+        isUserLoggedIn && <Button title={AppString.logoutButtonTitle} disabled={!isUserLoggedIn} onPress={onLogoutPress} />
       }
       <Hud showHud={showHud} />
-      <Modal
-        visible={showPopUp}
-        transparent={true}
-      >
-        <View style={styles.webView}>
-          <WebView
-            containerStyle={styles.webView}
-            useWebkit
-            startInLoadingState={true}
-            cacheEnabled={false}
-            onMessage={(data) => {
-              console.log('data-->', data)
-              // setWebviewData(data.nativeEvent.data)
-            }}
-            onNavigationStateChange={(data) => {
-              console.log('onNavigationStateChange1-->', data.url)
-              if(data.url.indexOf('session_state') > -1){
-                setShowPopUp(false)
-                let cropedData = data.url.split('session_state=')[1].split('&code=')
-                let session = cropedData[0];
-                let  code  = cropedData[1]
-                 setUserLoginState(true)
-                console.log('onNavigationStateChange-->', session, code)
-              }
-            }}
-            source={{
-              uri: getUrl
-            }}
-          />
-        </View>
-      </Modal>
+      <LoginPage/>
     </SafeAreaView>
   );
 };
@@ -256,7 +226,7 @@ const styles = StyleSheet.create({
   },
   webView: {
     flex: 1,
-    zIndex : 2
+    zIndex: 2
   }
 });
 
